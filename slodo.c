@@ -375,9 +375,6 @@ int main() {
     // Get graphics context
     font_full_t font = getFontFull(connection, screen, window, "fixed", backgroundPixel, foregroundPixel);
 
-    /* printf("Font size: %d\n", font.fontSize); */
-    /* printf("Text fit: %d\n", get_line_count(connection, window, font.fontSize)); */
-
     // Make sure the commands are sent
     xcb_flush(connection);
 
