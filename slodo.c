@@ -457,7 +457,7 @@ int main() {
                         if (current_state == TODO_WRITE_E)
                         {
                             static uint8_t current_char = 0;
-                            xcb_keysym_t y = xcb_key_symbols_get_keysym(key_syms, kr->detail, 0);
+                            xcb_keysym_t y = xcb_key_press_lookup_keysym(key_syms, kr, 0);
 
                             if (kr->detail == 36)
                             {
@@ -484,7 +484,7 @@ int main() {
                                 current_char++;
                             }
 
-                            text_draw(connection, screen, window, font, &text, DRAW_TYPE_REDRAW_E);
+                            drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
                         }
                         else // State = TODO_MANAGE_E
                         {
@@ -492,6 +492,7 @@ int main() {
                             if (kr->detail == 57)
                             {
                                 text_push_back(&text, "[ ] ");
+                                drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
                                 current_state = TODO_WRITE_E;
                             }
                             if (!text_is_empty(&text))
