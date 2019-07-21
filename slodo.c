@@ -195,7 +195,6 @@ void text_draw(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t 
     }
     else
     {
-        printf("Last text line removed!\n");
         xcb_clear_area(connection, 0, window, 0, 0, 1920, 1080);
         xcb_flush(connection);
     }
@@ -338,13 +337,7 @@ draw_type_e text_set_completion(todo_text_t* text)
             text_remove(text, text->selected);
             if (text->selected == text->size)
             {
-                printf("Removed bottom element!\n");
                 text->selected--;
-            }
-
-            if (text_is_empty(text))
-            {
-                printf("Empty text!\n");
             }
             return DRAW_TYPE_REDRAW_E;
         }
@@ -479,7 +472,6 @@ int main() {
                                 {
                                     text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
                                     text.data[text.size-1][current_char+5] = '\0';
-                                    printf("%s", XKeysymToString(y));
                                 }
                                 current_char++;
                             }
@@ -488,7 +480,6 @@ int main() {
                         }
                         else // State = TODO_MANAGE_E
                         {
-                            printf("Key detail: %d\n", kr->detail);
                             if (kr->detail == 57)
                             {
                                 text_push_back(&text, "[ ] ");
