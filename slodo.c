@@ -457,19 +457,28 @@ int main() {
                         if (current_state == TODO_WRITE_E)
                         {
                             static uint8_t current_char = 0;
+                            xcb_keysym_t y = xcb_key_symbols_get_keysym(key_syms, kr->detail, 0);
+
                             if (kr->detail == 36)
                             {
                                 current_char = 0;
                                 current_state = TODO_MANAGE_E;
-                                text_draw(connection, screen, window, font, &text, DRAW_TYPE_REDRAW_E);
                             } else
                             {
-                                xcb_keysym_t y = xcb_key_symbols_get_keysym(key_syms, kr->detail, 0);
-                                text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
-                                text.data[text.size-1][current_char+5] = '\0';
+                                char* string = XKeysymToString(y);
+                                if (strcmp(string, "space") == 0)
+                                {
+                                    text.data[text.size-1][current_char+4] = ' ';
+                                    text.data[text.size-1][current_char+5] = '\0';
+                                } else
+                                {
+                                    text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
+                                    text.data[text.size-1][current_char+5] = '\0';
+                                }
                                 current_char++;
-                                text_draw(connection, screen, window, font, &text, DRAW_TYPE_TOGGLE_E);
                             }
+
+                            text_draw(connection, screen, window, font, &text, DRAW_TYPE_REDRAW_E);
                         }
                         else // State = TODO_MANAGE_E
                         {
