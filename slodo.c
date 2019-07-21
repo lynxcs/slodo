@@ -470,10 +470,16 @@ int main() {
                                 {
                                     text.data[text.size-1][current_char+4] = ' ';
                                     text.data[text.size-1][current_char+5] = '\0';
+                                } else if (strcmp(string, "BackSpace") == 0)
+                                {
+                                    text.data[text.size-1][current_char+4] = '\0';
+                                    text.data[text.size-1][current_char+3] = '\0';
+                                    current_char -= 2;
                                 } else
                                 {
                                     text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
                                     text.data[text.size-1][current_char+5] = '\0';
+                                    printf("%s", XKeysymToString(y));
                                 }
                                 current_char++;
                             }
