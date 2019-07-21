@@ -3,8 +3,13 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
+#include <X11/keysym.h>
+#include <X11/keysymdef.h>
+#include <X11/Xlib.h>
 
 typedef struct
 {
@@ -30,8 +35,10 @@ typedef struct
 
 typedef struct
 {
-    uint32_t height;
-    uint32_t width;
+    uint16_t height;
+    uint16_t width;
+    uint16_t x;
+    uint16_t y;
 } window_geom_t;
 
 // Redraw - redraw the whole window
@@ -39,21 +46,8 @@ typedef struct
 // Toggle - toggle completion, meaning that only 1 line needs to be redrawn
 typedef enum
 {
-    DRAW_TYPE_REDRAW_E, DRAW_TYPE_MOVE_UP_E, DRAW_TYPE_MOVE_DOWN_E, DRAW_TYPE_TOGGLE_E
+    DRAW_TYPE_REDRAW_E, DRAW_TYPE_MOVE_UP_E, DRAW_TYPE_MOVE_DOWN_E, DRAW_TYPE_TOGGLE_E, DRAW_TYPE_NOTHING_E
 } draw_type_e;
-
-static int clamp(int v, int min, int max)
-{
-    if (v > max)
-    {
-        return max;
-    } else if (v < min)
-    {
-        return min;
-    } else {
-        return v;
-    }
-}
 
 static void testCookie(xcb_void_cookie_t cookie, xcb_connection_t* connection, char* errMessage)
 {
@@ -68,7 +62,6 @@ static void testCookie(xcb_void_cookie_t cookie, xcb_connection_t* connection, c
     free(error);
 }
 
-
 static void drawText(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t window, int16_t x1, int16_t y1, const char* label, xcb_gcontext_t gc)
 {
     // Draw text
@@ -82,6 +75,9 @@ static window_geom_t get_window_geometry(xcb_connection_t* connection, xcb_windo
 
     xcb_get_geometry_cookie_t geom_cookie = xcb_get_geometry(connection, window);
     xcb_get_geometry_reply_t* geom_reply = xcb_get_geometry_reply(connection, geom_cookie, NULL);
+
+    geom.x = geom_reply->x;
+    geom.y = geom_reply->y;
     geom.height = geom_reply->height;
     geom.width = geom_reply->width;
 
@@ -157,28 +153,52 @@ void text_print(todo_text_t* t)
     }
 }
 
+bool text_is_empty(todo_text_t* t)
+{
+    if (t->size == 0)
+    {
+        return true;
+    } else
+    {
+        return false;
+    }
+}
+
 // XCB Draw commands go here
 void text_draw(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t window, font_full_t font, todo_text_t* t, draw_type_e draw_type)
 {
     window_geom_t geometry = get_window_geometry(connection, window);
-    if (draw_type == DRAW_TYPE_REDRAW_E)
+    if (!text_is_empty(t))
     {
-        for (int i = 0; (i < get_line_count(connection, window, geometry, font.fontSize)) && (i < t->size); i++)
+        if (draw_type == DRAW_TYPE_REDRAW_E)
         {
-                drawText(connection, screen, window, 1, 10 + ((font.fontSize) * i), t->data[i], font.font_gc);
+            xcb_clear_area(connection, 0, window, 0, 0, 1920, 1080);
+            xcb_flush(connection);
+            for (int i = 0; (i < get_line_count(connection, window, geometry, font.fontSize)) && (i < t->size); i++)
+            {
+                    drawText(connection, screen, window, 1, 10 + ((font.fontSize) * i), t->data[i], font.font_gc);
+            }
+            drawText(connection, screen, window, 1, 10 + ((font.fontSize) * t->selected), t->data[t->selected], font.font_gc_inverted);
+        } else if (draw_type == DRAW_TYPE_TOGGLE_E)
+        {
+            drawText(connection, screen, window, 1, 10+ (font.fontSize * t->selected), t->data[t->selected], font.font_gc_inverted);
+            drawText(connection, screen, window, 1, 10 + ((font.fontSize) * t->selected), t->data[t->selected], font.font_gc_inverted);
+        } else if (draw_type == DRAW_TYPE_MOVE_UP_E)
+        {
+            drawText(connection, screen, window, 1, 10+ (font.fontSize * (t->selected+1)), t->data[t->selected+1], font.font_gc);
+            drawText(connection, screen, window, 1, 10 + ((font.fontSize) * t->selected), t->data[t->selected], font.font_gc_inverted);
+        } else if (draw_type == DRAW_TYPE_MOVE_DOWN_E)
+        {
+            drawText(connection, screen, window, 1, 10+ (font.fontSize * (t->selected-1)), t->data[t->selected-1], font.font_gc);
+            drawText(connection, screen, window, 1, 10 + ((font.fontSize) * t->selected), t->data[t->selected], font.font_gc_inverted);
         }
-    } else if (draw_type == DRAW_TYPE_TOGGLE_E)
-    {
-        drawText(connection, screen, window, 1, 10+ (font.fontSize * t->selected), t->data[t->selected], font.font_gc_inverted);
-    } else if (draw_type == DRAW_TYPE_MOVE_UP_E)
-    {
-        drawText(connection, screen, window, 1, 10+ (font.fontSize * (t->selected+1)), t->data[t->selected+1], font.font_gc);
-    } else
-    {
-        drawText(connection, screen, window, 1, 10+ (font.fontSize * (t->selected-1)), t->data[t->selected-1], font.font_gc);
     }
-
-    drawText(connection, screen, window, 1, 10 + ((font.fontSize) * t->selected), t->data[t->selected], font.font_gc_inverted);
+    else
+    {
+        printf("Last text line removed!\n");
+        xcb_clear_area(connection, 0, window, 0, 0, 1920, 1080);
+        xcb_flush(connection);
+    }
 }
 
 void text_init_from_file(todo_text_t* t, const char* path)
@@ -221,7 +241,11 @@ void text_init_from_file(todo_text_t* t, const char* path)
 
 void text_commit_to_file(todo_text_t* t, const char* path)
 {
-
+    FILE* fp;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    size_t liens = 0;
 }
 
 static font_full_t getFontFull(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t window, const char* font_name, uint32_t background, uint32_t foreground)
@@ -301,15 +325,32 @@ static uint32_t getColorPixel(xcb_connection_t* connection, xcb_screen_t* screen
     return pixel;
 }
 
-void text_toggle_completed(todo_text_t* text)
+draw_type_e text_set_completion(todo_text_t* text)
 {
-    if (text->data[text->selected][1] == ' ')
+    if (text->size != 0)
     {
-        text->data[text->selected][1] = 'X';
-    } else
-    {
-        text->data[text->selected][1] = ' ';
+        if (text->data[text->selected][1] == ' ')
+        {
+            text->data[text->selected][1] = 'X';
+            return DRAW_TYPE_TOGGLE_E;
+        } else
+        {
+            text_remove(text, text->selected);
+            if (text->selected == text->size)
+            {
+                printf("Removed bottom element!\n");
+                text->selected--;
+            }
+
+            if (text_is_empty(text))
+            {
+                printf("Empty text!\n");
+            }
+            return DRAW_TYPE_REDRAW_E;
+        }
     }
+
+    return DRAW_TYPE_NOTHING_E;
 }
 
 int main() {
@@ -326,6 +367,7 @@ int main() {
 
     // Get current screen
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
+    xcb_key_symbols_t* key_syms = xcb_key_symbols_alloc(connection);
 
     // We want the screen at index screenNum of the iterator
     for (int i = 0; i < screenNum; ++i) {
@@ -343,6 +385,7 @@ int main() {
     xcb_window_t window = xcb_generate_id(connection);
     /* xcb_window_t window = screen->root; */
 
+    /* xcb_key_symbols_t* syms = xcb_key_symbols_alloc(connection); */
 
     uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     uint32_t values[2];
@@ -351,7 +394,7 @@ int main() {
     uint32_t foregroundPixel = getColorPixel(connection, screen, "#dacea6");
 
     values[0] = backgroundPixel;
-    values[1] = XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE;
+    values[1] = XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_EXPOSURE;
 
     xcb_void_cookie_t windowCookie = xcb_create_window_checked(connection,                    // Connection
                                                                screen->root_depth,            // Depth (same as root)
@@ -379,6 +422,13 @@ int main() {
     xcb_flush(connection);
 
     xcb_generic_event_t* event;
+    enum
+    {
+        TODO_MANAGE_E, TODO_WRITE_E
+    } current_state;
+
+    current_state = TODO_MANAGE_E;
+
     while(1)
     {
         if ( (event = xcb_wait_for_event(connection)) )
@@ -388,44 +438,71 @@ int main() {
                 case XCB_EXPOSE:
                     text_draw(connection, screen, window, font, &text, DRAW_TYPE_REDRAW_E);
                     break;
-                case XCB_KEY_RELEASE:
+                case XCB_KEY_PRESS:
                     {
-                        xcb_key_release_event_t* kr = (xcb_key_release_event_t*) event;
+                        xcb_key_press_event_t* kr = (xcb_key_release_event_t*) event;
 
-                        if (kr->detail == 111) // Up key
+                        if (kr->detail == 9)
                         {
-                            if (text.selected != 0)
-                            {
-                                text.selected--;
-                            }
-                            text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_UP_E);
-                        }
-                        else if (kr->detail == 116) // Down key
-                        {
-                            if (text.selected + 1 < text.size)
-                            {
-                                text.selected++;
-                            }
-                            text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_DOWN_E);
-                        }
-                        else if (kr->detail == 36) // Enter key
-                        {
-                            text_toggle_completed(&text);
-                            text_draw(connection, screen, window, font, &text, DRAW_TYPE_TOGGLE_E);
-                        }
-                        else if (kr->detail == 9)
-                        {
-                            // Free the graphics context
-                            xcb_void_cookie_t gcCookie = xcb_free_gc(connection, font.font_gc);
-                            testCookie(gcCookie, connection, "Can't free gc");
-
                             free(event);
                             free(text.data);
                             xcb_free_gc(connection, font.font_gc);
                             xcb_free_gc(connection, font.font_gc_inverted);
+                            xcb_key_symbols_free(key_syms);
                             xcb_disconnect(connection);
 
                             return 0;
+                        }
+
+                        if (current_state == TODO_WRITE_E)
+                        {
+                            static uint8_t current_char = 0;
+                            if (kr->detail == 36)
+                            {
+                                current_char = 0;
+                                current_state = TODO_MANAGE_E;
+                                text_draw(connection, screen, window, font, &text, DRAW_TYPE_REDRAW_E);
+                            } else
+                            {
+                                xcb_keysym_t y = xcb_key_symbols_get_keysym(key_syms, kr->detail, 0);
+                                text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
+                                text.data[text.size-1][current_char+5] = '\0';
+                                current_char++;
+                                text_draw(connection, screen, window, font, &text, DRAW_TYPE_TOGGLE_E);
+                            }
+                        }
+                        else // State = TODO_MANAGE_E
+                        {
+                            printf("Key detail: %d\n", kr->detail);
+                            if (kr->detail == 57)
+                            {
+                                text_push_back(&text, "[ ] ");
+                                current_state = TODO_WRITE_E;
+                            }
+                            if (!text_is_empty(&text))
+                            {
+                                if (kr->detail == 111) // Up key
+                                {
+                                    if (text.selected != 0)
+                                    {
+                                        text.selected--;
+                                    }
+                                    text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_UP_E);
+                                }
+                                else if (kr->detail == 116) // Down key
+                                {
+                                    if (text.selected + 1 < text.size)
+                                    {
+                                        text.selected++;
+                                    }
+                                    text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_DOWN_E);
+                                }
+                                else if (kr->detail == 36) // Enter key
+                                {
+                                    draw_type_e draw_type = text_set_completion(&text);
+                                    text_draw(connection, screen, window, font, &text, draw_type);
+                                }
+                            }
                         }
                     }
             }
