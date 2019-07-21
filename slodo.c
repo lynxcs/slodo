@@ -473,7 +473,7 @@ int main() {
                                 } else if (strcmp(string, "BackSpace") == 0)
                                 {
                                     text.data[text.size-1][current_char+4] = '\0';
-                                    text.data[text.size-1][current_char+3] = '\0';
+                                    text.data[text.size-1][current_char+3] = ' ';
                                     current_char -= 2;
                                 } else
                                 {
