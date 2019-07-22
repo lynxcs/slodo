@@ -120,6 +120,7 @@ int text_push_back(todo_text_t* t, const char* text)
     }
 
     strcpy(t->data[t->size++], text);
+    t->data[t->size-1][255] = '\0';
 
     return 0;
 }
@@ -172,7 +173,8 @@ void text_draw(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t 
     {
         if (draw_type == DRAW_TYPE_REDRAW_E)
         {
-            xcb_clear_area(connection, 0, window, 0, 0, 1920, 1080);
+            /* xcb_clear_area(connection, 0, window, 0, 0, 1920, 1080); */
+            xcb_clear_area(connection, 0, window, 0, 0, 300, 200);
             xcb_flush(connection);
             for (int i = 0; (i < get_line_count(connection, window, geometry, font.fontSize)) && (i < t->size); i++)
             {
@@ -181,7 +183,7 @@ void text_draw(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t 
             drawText(connection, screen, window, 1, 10 + ((font.fontSize) * t->selected), t->data[t->selected], font.font_gc_inverted);
         } else if (draw_type == DRAW_TYPE_TOGGLE_E)
         {
-            drawText(connection, screen, window, 1, 10+ (font.fontSize * t->selected), t->data[t->selected], font.font_gc_inverted);
+            /* drawText(connection, screen, window, 1, 10+ (font.fontSize * t->selected), t->data[t->selected], font.font_gc_inverted); */
             drawText(connection, screen, window, 1, 10 + ((font.fontSize) * t->selected), t->data[t->selected], font.font_gc_inverted);
         } else if (draw_type == DRAW_TYPE_MOVE_UP_E)
         {
@@ -195,7 +197,8 @@ void text_draw(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t 
     }
     else
     {
-        xcb_clear_area(connection, 0, window, 0, 0, 1920, 1080);
+        /* xcb_clear_area(connection, 0, window, 0, 0, 1920, 1080); */
+        xcb_clear_area(connection, 0, window, 0, 0, 300, 200);
         xcb_flush(connection);
     }
 }
@@ -456,6 +459,8 @@ int main() {
                             {
                                 current_char = 0;
                                 current_state = TODO_MANAGE_E;
+                                text.selected = 0;
+                                drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.selected)), text.data[text.selected], font.font_gc_inverted);
                             } else
                             {
                                 char* string = XKeysymToString(y);
@@ -463,25 +468,36 @@ int main() {
                                 {
                                     text.data[text.size-1][current_char+4] = ' ';
                                     text.data[text.size-1][current_char+5] = '\0';
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
                                 } else if (strcmp(string, "BackSpace") == 0)
                                 {
                                     text.data[text.size-1][current_char+4] = '\0';
                                     text.data[text.size-1][current_char+3] = ' ';
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
+
+                                    text.data[text.size-1][current_char+3] = '\0';
                                     current_char -= 2;
                                 } else
                                 {
                                     text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
                                     text.data[text.size-1][current_char+5] = '\0';
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
                                 }
                                 current_char++;
                             }
 
-                            drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
                         }
                         else // State = TODO_MANAGE_E
                         {
                             if (kr->detail == 57)
                             {
+                                // Remove selection marker if present
+                                if (text.size != 0)
+                                {
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.selected)), text.data[text.selected], font.font_gc);
+                                }
+
+
                                 text_push_back(&text, "[ ] ");
                                 drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
                                 current_state = TODO_WRITE_E;
