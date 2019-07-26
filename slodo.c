@@ -410,7 +410,7 @@ int main() {
     uint32_t foregroundPixel = getColorPixel(connection, screen, "#dacea6");
 
     values[0] = backgroundPixel;
-    values[1] = XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_EXPOSURE;
+    values[1] = XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE;
 
     xcb_void_cookie_t windowCookie = xcb_create_window_checked(connection,                    // Connection
                                                                screen->root_depth,            // Depth (same as root)
@@ -445,6 +445,7 @@ int main() {
 
     current_state = TODO_MANAGE_E;
 
+    bool upper_case = false;
     while(1)
     {
         if ( (event = xcb_wait_for_event(connection)) )
@@ -454,9 +455,18 @@ int main() {
                 case XCB_EXPOSE:
                     text_draw(connection, screen, window, font, &text, DRAW_TYPE_REDRAW_E);
                     break;
+                case XCB_KEY_RELEASE:
+                    {
+                        xcb_key_release_event_t* kr = (xcb_key_release_event_t*) event;
+                        if (kr->detail == 50)
+                        {
+                            upper_case = false;
+                        }
+                        break;
+                    }
                 case XCB_KEY_PRESS:
                     {
-                        xcb_key_press_event_t* kr = (xcb_key_release_event_t*) event;
+                        xcb_key_press_event_t* kr = (xcb_key_press_event_t*) event;
 
                         if (kr->detail == 9)
                         {
@@ -470,6 +480,11 @@ int main() {
                             return 0;
                         }
 
+                        if (kr->detail == 50)
+                        {
+                            upper_case = true;
+                        }
+                        else
                         if (current_state == TODO_WRITE_E)
                         {
                             // TODO Figure out a way to allow infinite writing
@@ -502,7 +517,13 @@ int main() {
                                     current_char -= 2;
                                 } else
                                 {
-                                    text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
+                                    if (upper_case)
+                                    {
+                                        text.data[text.size-1][current_char+4] = XKeysymToString(y)[0] - 32;
+                                    } else
+                                    {
+                                        text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
+                                    }
                                     text.data[text.size-1][current_char+5] = '\0';
                                     drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
                                 }
