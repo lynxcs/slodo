@@ -13,7 +13,7 @@
 
 typedef struct
 {
-    char (*data)[256]; // TODO Change to using char**
+    char** data;
     size_t capacity;
     size_t size;
 
@@ -94,7 +94,7 @@ static int get_line_count(xcb_connection_t* connection, xcb_window_t window, win
 
 int text_init(todo_text_t* t, size_t init_capacity)
 {
-    t->data = malloc(init_capacity * sizeof(char[256]));
+    t->data = malloc(init_capacity * sizeof(char*));
     if (!t->data)
     {
         return -1;
@@ -108,41 +108,42 @@ int text_init(todo_text_t* t, size_t init_capacity)
     return 0;
 }
 
-int text_push_back(todo_text_t* t, const char* text)
+int text_free(todo_text_t* t)
 {
-    if (strlen(text) > 256)
-        return -1;
-
-    if (t->capacity == t->size)
+    for(int i = 0; i < t->size; i++)
     {
-        t->data = realloc(t->data, t->capacity * sizeof(char[256]) * 2);
-        t->capacity = t->capacity * 2;
+        free(t->data[i]);
     }
 
-    strcpy(t->data[t->size++], text);
-    t->data[t->size-1][255] = '\0';
+    free(t->data);
 
     return 0;
 }
 
-int text_remove(todo_text_t* t, size_t index)
+int text_push_back(todo_text_t* t, const char* text)
 {
-    if (index + 1 > t->size)
-        return -1;
 
-    // If index is at last element, set to null
-    if (index + 1 == t->size)
+    if (t->capacity == t->size)
     {
-        strcpy(t->data[t->size], "");
-        t->size--;
-        return 0;
+        t->data = realloc(t->data, t->capacity * sizeof(char*) * 2);
+        t->capacity = t->capacity * 2;
     }
 
-    size_t copy_size = t->size - (index+1);
+    t->data[t->size] = strdup(text);
+    t->size++;
 
-    memmove(&t->data[index], &t->data[index+1], copy_size * sizeof(char[256]));
-    t->size--;
+    return 0;
+}
 
+int text_push_back_empty(todo_text_t* t)
+{
+    if (t->capacity == t->size)
+    {
+        t->data = realloc(t->data, t->capacity * sizeof(char*) * 2);
+        t->capacity = t->capacity * 2;
+    }
+
+    t->size++;
     return 0;
 }
 
@@ -152,6 +153,25 @@ void text_print(todo_text_t* t)
     {
         printf("%s\n", t->data[i]);
     }
+}
+
+int text_remove(todo_text_t* t, size_t index)
+{
+    if (index + 1 > t->size)
+        return -1;
+
+    // Free char* at removal index
+    free(t->data[index]);
+
+    // If index wasn't the last item, move memory
+    if (index + 1 != t->size)
+    {
+        size_t copy_size = t->size - (index+1);
+        memmove(&t->data[index], &t->data[index+1], copy_size * sizeof(char*));
+    }
+
+    t->size--;
+    return 0;
 }
 
 bool text_is_empty(todo_text_t* t)
@@ -441,7 +461,7 @@ int main() {
                         if (kr->detail == 9)
                         {
                             free(event);
-                            free(text.data);
+                            text_free(&text);
                             xcb_free_gc(connection, font.font_gc);
                             xcb_free_gc(connection, font.font_gc_inverted);
                             xcb_key_symbols_free(key_syms);
@@ -452,15 +472,18 @@ int main() {
 
                         if (current_state == TODO_WRITE_E)
                         {
+                            // TODO Figure out a way to allow infinite writing
+                            // Maybe a helper "line" class?
                             static uint8_t current_char = 0;
                             xcb_keysym_t y = xcb_key_press_lookup_keysym(key_syms, kr, 0);
 
-                            if (kr->detail == 36)
+                            if (kr->detail == 36) // Enter key
                             {
                                 current_char = 0;
                                 current_state = TODO_MANAGE_E;
                                 text.selected = 0;
                                 drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.selected)), text.data[text.selected], font.font_gc_inverted);
+
                             } else
                             {
                                 char* string = XKeysymToString(y);
@@ -468,12 +491,12 @@ int main() {
                                 {
                                     text.data[text.size-1][current_char+4] = ' ';
                                     text.data[text.size-1][current_char+5] = '\0';
-                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
                                 } else if (strcmp(string, "BackSpace") == 0)
                                 {
                                     text.data[text.size-1][current_char+4] = '\0';
                                     text.data[text.size-1][current_char+3] = ' ';
-                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
 
                                     text.data[text.size-1][current_char+3] = '\0';
                                     current_char -= 2;
@@ -481,7 +504,7 @@ int main() {
                                 {
                                     text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
                                     text.data[text.size-1][current_char+5] = '\0';
-                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
                                 }
                                 current_char++;
                             }
@@ -489,7 +512,7 @@ int main() {
                         }
                         else // State = TODO_MANAGE_E
                         {
-                            if (kr->detail == 57)
+                            if (kr->detail == 57) // Enter key
                             {
                                 // Remove selection marker if present
                                 if (text.size != 0)
@@ -497,9 +520,10 @@ int main() {
                                     drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.selected)), text.data[text.selected], font.font_gc);
                                 }
 
-
-                                text_push_back(&text, "[ ] ");
-                                drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size-1)), text.data[text.size-1], font.font_gc);
+                                text_push_back_empty(&text);
+                                text.data[text.size - 1] = (char*) malloc(sizeof(char) * 255);
+                                strcpy(text.data[text.size-1], "[ ] ");
+                                drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), "[ ] ", font.font_gc);
                                 current_state = TODO_WRITE_E;
                             }
                             if (!text_is_empty(&text))
