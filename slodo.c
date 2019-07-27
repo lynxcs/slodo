@@ -566,7 +566,7 @@ int main() {
                         }
                         else // State = TODO_MANAGE_E
                         {
-                            if (kr->detail == 57) // Enter key
+                            if (kr->detail == 57) // N
                             {
                                 // Remove selection marker if present
                                 if (text.size != 0)
@@ -582,7 +582,7 @@ int main() {
                             }
                             if (!text_is_empty(&text))
                             {
-                                if (kr->detail == 111) // Up key
+                                if (kr->detail == 111 || kr->detail == 45) // Up key Or K
                                 {
                                     if (text.selected != 0)
                                     {
@@ -590,7 +590,7 @@ int main() {
                                     }
                                     text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_UP_E);
                                 }
-                                else if (kr->detail == 116) // Down key
+                                else if (kr->detail == 116 || kr->detail == 44) // Down key Or J
                                 {
                                     if (text.selected + 1 < text.size)
                                     {
@@ -598,7 +598,7 @@ int main() {
                                     }
                                     text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_DOWN_E);
                                 }
-                                else if (kr->detail == 36) // Enter key
+                                else if (kr->detail == 36 || kr->detail == 46) // Enter key Or L
                                 {
                                     draw_type_e draw_type = text_set_completion(&text);
                                     text_draw(connection, screen, window, font, &text, draw_type);
