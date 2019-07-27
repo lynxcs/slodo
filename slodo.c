@@ -566,7 +566,7 @@ int main() {
                         }
                         else // State = TODO_MANAGE_E
                         {
-                            if (kr->detail == 57) // N
+                            if (kr->detail == 32) // O
                             {
                                 // Remove selection marker if present
                                 if (text.size != 0)
