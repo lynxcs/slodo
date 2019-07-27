@@ -487,6 +487,14 @@ int main() {
 
                         if (kr->detail == 9)
                         {
+                            if (current_state == TODO_WRITE_E)
+                            {
+                                if (strcmp(text.data[text.size-1], "[ ] ") == 0)
+                                {
+                                    text_remove(&text, text.size - 1);
+                                }
+                            }
+
                             free(event);
                             xcb_free_gc(connection, font.font_gc);
                             xcb_free_gc(connection, font.font_gc_inverted);
