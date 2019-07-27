@@ -245,7 +245,7 @@ void text_init_from_file(todo_text_t* t, const char* path)
 
     rewind(fp);
 
-    text_init(t, lines);
+    text_init(t, lines + 2);
 
     while((read = getline(&line, &len, fp)) != -1)
     {
