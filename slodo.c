@@ -516,21 +516,25 @@ int main() {
                                     text.data[text.size-1][current_char+4] = ' ';
                                     text.data[text.size-1][current_char+5] = '\0';
                                     drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
+                                    current_char++;
                                 } else if (strcmp(string, "BackSpace") == 0)
                                 {
-                                    text.data[text.size-1][current_char+4] = '\0';
-                                    text.data[text.size-1][current_char+3] = ' ';
-                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
+                                    if (current_char != 0)
+                                    {
+                                        text.data[text.size-1][current_char+4] = '\0';
+                                        text.data[text.size-1][current_char+3] = ' ';
+                                        drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
 
-                                    text.data[text.size-1][current_char+3] = '\0';
-                                    current_char -= 2;
+                                        text.data[text.size-1][current_char+3] = '\0';
+                                        current_char--;
+                                    }
                                 } else
                                 {
                                     text.data[text.size-1][current_char+4] = y;
                                     text.data[text.size-1][current_char+5] = '\0';
                                     drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
+                                    current_char++;
                                 }
-                                current_char++;
                             }
 
                         }
