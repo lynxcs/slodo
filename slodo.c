@@ -267,7 +267,24 @@ void text_commit_to_file(todo_text_t* t, const char* path)
     char* line = NULL;
     size_t len = 0;
     ssize_t read;
-    size_t liens = 0;
+    size_t lines = 0;
+
+    fp = fopen(path, "w");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "ERROR: Failed to open file");
+        exit(-1);
+    }
+
+    for(int i = 0; i < t->size; i++)
+    {
+        int length = strlen(t->data[i]);
+        t->data[i][length] = '\n';
+        fwrite(t->data[i], sizeof(char), strlen(t->data[i]), fp);
+        t->data[i][length] = '\0';
+    }
+
+    fclose(fp);
 }
 
 static font_full_t getFontFull(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t window, const char* font_name, uint32_t background, uint32_t foreground)
@@ -471,12 +488,13 @@ int main() {
                         if (kr->detail == 9)
                         {
                             free(event);
-                            text_free(&text);
                             xcb_free_gc(connection, font.font_gc);
                             xcb_free_gc(connection, font.font_gc_inverted);
                             xcb_key_symbols_free(key_syms);
                             xcb_disconnect(connection);
 
+                            text_commit_to_file(&text, "/home/void/notes/todo");
+                            text_free(&text);
                             return 0;
                         }
 
