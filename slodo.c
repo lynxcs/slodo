@@ -520,7 +520,9 @@ int main() {
                             xcb_key_symbols_free(key_syms);
                             xcb_disconnect(connection);
 
-                            text_commit_to_file(&text, "/home/void/notes/todo");
+                            if (!upper_case)
+                                text_commit_to_file(&text, "/home/void/notes/todo");
+
                             text_free(&text);
                             return 0;
                         }
