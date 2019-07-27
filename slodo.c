@@ -529,7 +529,7 @@ int main() {
                                 char* string = XKeysymToString(y);
 
                                 int offset = 0; // TODO Introduce offset when text passes border of window
-                                if (strcmp(string, "space") == 0)
+                                if (y == 0 || strcmp(string, "space") == 0)
                                 {
                                     text.data[text.size-1][current_char+4] = ' ';
                                     text.data[text.size-1][current_char+5] = '\0';
