@@ -280,7 +280,7 @@ void text_commit_to_file(todo_text_t* t, const char* path)
     {
         int length = strlen(t->data[i]);
         t->data[i][length] = '\n';
-        fwrite(t->data[i], sizeof(char), strlen(t->data[i]), fp);
+        fwrite(t->data[i], sizeof(char), length+1, fp);
         t->data[i][length] = '\0';
     }
 
