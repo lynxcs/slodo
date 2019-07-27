@@ -549,7 +549,7 @@ int main() {
                                     drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size)), "    ", font.font_gc);
                                 }
 
-                                text.selected = 0;
+                                text.selected = text.size-1;
                                 drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.selected)), text.data[text.selected], font.font_gc_inverted);
                             } else
                             {
