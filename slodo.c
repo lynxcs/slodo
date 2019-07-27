@@ -548,7 +548,7 @@ int main() {
                                 if (strcmp(text.data[text.size-1], "[ ] ") == 0)
                                 {
                                     text_remove(&text, text.size - 1);
-                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size)), "    ", font.font_gc);
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size)), "     ", font.font_gc);
                                 }
 
                                 text.selected = text.size-1;
@@ -564,16 +564,19 @@ int main() {
                                     text.data[text.size-1][current_char+5] = '\0';
                                     drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
                                     current_char++;
+                                    drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc_inverted);
                                 } else if (strcmp(string, "BackSpace") == 0)
                                 {
                                     if (current_char != 0)
                                     {
+                                        drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc);
                                         text.data[text.size-1][current_char+4] = '\0';
                                         text.data[text.size-1][current_char+3] = ' ';
                                         drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
 
                                         text.data[text.size-1][current_char+3] = '\0';
                                         current_char--;
+                                        drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc_inverted);
                                     }
                                 } else
                                 {
@@ -581,6 +584,7 @@ int main() {
                                     text.data[text.size-1][current_char+5] = '\0';
                                     drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
                                     current_char++;
+                                    drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc_inverted);
                                 }
                             }
 
@@ -589,6 +593,8 @@ int main() {
                         {
                             if (kr->detail == 32) // O
                             {
+                                current_state = TODO_WRITE_E;
+
                                 // Remove selection marker if present
                                 if (text.size != 0)
                                 {
@@ -598,8 +604,9 @@ int main() {
                                 text_push_back_empty(&text);
                                 text.data[text.size - 1] = (char*) malloc(sizeof(char) * 255);
                                 strcpy(text.data[text.size-1], "[ ] ");
+
                                 drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), "[ ] ", font.font_gc);
-                                current_state = TODO_WRITE_E;
+                                drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc_inverted);
                             }
                             if (!text_is_empty(&text))
                             {
