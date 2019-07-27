@@ -490,7 +490,7 @@ int main() {
                             // TODO Figure out a way to allow infinite writing
                             // Maybe a helper "line" class?
                             static uint8_t current_char = 0;
-                            xcb_keysym_t y = xcb_key_press_lookup_keysym(key_syms, kr, 0);
+                            xcb_keysym_t y = xcb_key_press_lookup_keysym(key_syms, kr, (int) upper_case);
 
                             if (kr->detail == 36) // Enter key
                             {
@@ -502,28 +502,24 @@ int main() {
                             } else
                             {
                                 char* string = XKeysymToString(y);
+
+                                int offset = 0; // TODO Introduce offset when text passes border of window
                                 if (strcmp(string, "space") == 0)
                                 {
                                     text.data[text.size-1][current_char+4] = ' ';
                                     text.data[text.size-1][current_char+5] = '\0';
-                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
                                 } else if (strcmp(string, "BackSpace") == 0)
                                 {
                                     text.data[text.size-1][current_char+4] = '\0';
                                     text.data[text.size-1][current_char+3] = ' ';
-                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
 
                                     text.data[text.size-1][current_char+3] = '\0';
                                     current_char -= 2;
                                 } else
                                 {
-                                    if (upper_case)
-                                    {
-                                        text.data[text.size-1][current_char+4] = XKeysymToString(y)[0] - 32;
-                                    } else
-                                    {
-                                        text.data[text.size-1][current_char+4] = XKeysymToString(y)[0];
-                                    }
+                                    text.data[text.size-1][current_char+4] = y;
                                     text.data[text.size-1][current_char+5] = '\0';
                                     drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
                                 }
