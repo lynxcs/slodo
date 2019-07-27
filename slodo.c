@@ -496,9 +496,16 @@ int main() {
                             {
                                 current_char = 0;
                                 current_state = TODO_MANAGE_E;
+
+                                // Nothing was typed, so we don't save it
+                                if (strcmp(text.data[text.size-1], "[ ] ") == 0)
+                                {
+                                    text_remove(&text, text.size - 1);
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size)), "    ", font.font_gc);
+                                }
+
                                 text.selected = 0;
                                 drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.selected)), text.data[text.selected], font.font_gc_inverted);
-
                             } else
                             {
                                 char* string = XKeysymToString(y);
