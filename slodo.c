@@ -223,6 +223,25 @@ void text_draw(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t 
     }
 }
 
+// Swaps src text with dst text
+int text_swap(todo_text_t* t, int src, int dst)
+{
+    if (src < 0 || dst < 0)
+        return -1;
+
+    if (src == dst)
+        return 0;
+
+    if (src >= t->size || dst >= t->size)
+        return -1;
+
+    char* temp = t->data[dst];
+    t->data[dst] = t->data[src];
+    t->data[src] = temp;
+
+    return 0;
+}
+
 void text_init_from_file(todo_text_t* t, const char* path)
 {
     FILE* fp;
@@ -584,19 +603,43 @@ int main() {
                             {
                                 if (kr->detail == 111 || kr->detail == 45) // Up key Or K
                                 {
-                                    if (text.selected != 0)
+                                    if (upper_case)
                                     {
-                                        text.selected--;
+                                        text_swap(&text, text.selected, text.selected-1);
+                                        if (text.selected != 0)
+                                        {
+                                            text.selected--;
+                                        }
+                                        text_draw(connection, screen, window, font, &text, DRAW_TYPE_REDRAW_E);
                                     }
-                                    text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_UP_E);
+                                    else
+                                    {
+                                        if (text.selected != 0)
+                                        {
+                                            text.selected--;
+                                        }
+                                        text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_UP_E);
+                                    }
                                 }
                                 else if (kr->detail == 116 || kr->detail == 44) // Down key Or J
                                 {
-                                    if (text.selected + 1 < text.size)
+                                    if (upper_case)
                                     {
-                                        text.selected++;
+                                        text_swap(&text, text.selected, text.selected + 1);
+                                        if (text.selected + 1 < text.size)
+                                        {
+                                            text.selected++;
+                                        }
+                                        text_draw(connection, screen, window, font, &text, DRAW_TYPE_REDRAW_E);
                                     }
-                                    text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_DOWN_E);
+                                    else
+                                    {
+                                        if (text.selected + 1 < text.size)
+                                        {
+                                            text.selected++;
+                                        }
+                                        text_draw(connection, screen, window, font, &text, DRAW_TYPE_MOVE_DOWN_E);
+                                    }
                                 }
                                 else if (kr->detail == 36 || kr->detail == 46) // Enter key Or L
                                 {
