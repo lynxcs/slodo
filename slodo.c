@@ -557,7 +557,9 @@ int main() {
                             {
                                 char* string = XKeysymToString(y);
 
-                                int offset = 0; // TODO Introduce offset when text passes border of window
+                                int offset = current_char + 6 - get_char_count(connection, window, get_window_geometry(connection, window), font.fontSize); // TODO Introduce offset when text passes border of window
+                                offset = offset < 0 ? 0 : offset;
+
                                 if (y == 0 || strcmp(string, "space") == 0)
                                 {
                                     text.data[text.size-1][current_char+4] = ' ';
@@ -569,20 +571,20 @@ int main() {
                                 {
                                     if (current_char != 0)
                                     {
-                                        drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc);
-                                        text.data[text.size-1][current_char+4] = '\0';
-                                        text.data[text.size-1][current_char+3] = ' ';
-                                        drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
+                                        offset -= 2; // Don't know why it's -2, just how it is.
 
+                                        drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc);
                                         text.data[text.size-1][current_char+3] = '\0';
-                                        current_char--;
+                                        drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
                                         drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc_inverted);
+
+                                        current_char--;
                                     }
                                 } else
                                 {
                                     text.data[text.size-1][current_char+4] = y;
                                     text.data[text.size-1][current_char+5] = '\0';
-                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), text.data[text.size-1], font.font_gc);
+                                    drawText(connection, screen, window, 1, 10+ (font.fontSize * (text.size - 1)), &text.data[text.size-1][offset], font.font_gc);
                                     current_char++;
                                     drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc_inverted);
                                 }
