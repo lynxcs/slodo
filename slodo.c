@@ -92,6 +92,13 @@ static int get_line_count(xcb_connection_t* connection, xcb_window_t window, win
     return full_fit_count; // Assuming that the top and bottom both have ~10px margin
 }
 
+static int get_char_count(xcb_connection_t* connection, xcb_window_t window, window_geom_t geometry, int text_width)
+{
+    text_width -= 7;
+    int full_fit_count = (geometry.width - (geometry.width % text_width))/text_width;
+    return full_fit_count;
+}
+
 int text_init(todo_text_t* t, size_t init_capacity)
 {
     t->data = malloc(init_capacity * sizeof(char*));
@@ -544,6 +551,8 @@ int main() {
                                 current_char = 0;
                                 current_state = TODO_MANAGE_E;
 
+                                drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc);
+
                                 // Nothing was typed, so we don't save it
                                 if (strcmp(text.data[text.size-1], "[ ] ") == 0)
                                 {
@@ -572,6 +581,7 @@ int main() {
                                     if (current_char != 0)
                                     {
                                         offset -= 2; // Don't know why it's -2, just how it is.
+                                        offset = offset < 0 ? 0 : offset;
 
                                         drawText(connection, screen, window, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc);
                                         text.data[text.size-1][current_char+3] = '\0';
