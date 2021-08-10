@@ -11,6 +11,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+#define TODO_PATH "/tmp/todo"
+
 typedef struct
 {
     char** data;
@@ -255,6 +257,7 @@ void text_draw(xcb_main main, font_full_t font, todo_text_t* t, draw_type_e draw
         xcb_clear_area(main.connection, 0, main.window, 0, 0, geometry.width, geometry.height);
         xcb_flush(main.connection);
     }
+
 }
 
 // Swaps src text with dst text
@@ -293,7 +296,7 @@ void text_init_from_file(todo_text_t* t, const char* path)
     fp = fopen(path, "r");
     if (fp == NULL)
     {
-        fprintf(stderr, "ERROR: Failed to open file");
+        fprintf(stderr, "ERROR: Failed to open file (%s). Does it exist?\n", path);
         exit(-1);
     }
 
@@ -506,7 +509,7 @@ static xcb_main create_xcb_main(int line_count)
             main.screen->root_depth,            // Depth (same as root)
             main.window,                        // Window Id
             main.screen->root,                  // Parent window
-            1604, 12,                      // x, y
+            1604, 32,                      // x, y
             300, needed_lines * font.fontSize,// width, height
             0,                             // border width
             XCB_WINDOW_CLASS_INPUT_OUTPUT, // class
@@ -539,9 +542,13 @@ static void decrease_window_size(xcb_main main, font_full_t font)
 }
 
 int main() {
+    if (TODO_PATH == "/tmp/todo")
+    {
+        fprintf(stderr, "todo file in tmp directory! Did you forget to change TODO_PATH definition?\n");
+    }
 
     todo_text_t text;
-    text_init_from_file(&text, "/home/void/notes/todo");
+    text_init_from_file(&text, TODO_PATH);
 
     xcb_main main = create_xcb_main(text.size);
     xcb_key_symbols_t* key_syms = xcb_key_symbols_alloc(main.connection);
@@ -568,6 +575,14 @@ int main() {
     {
         if ( (event = xcb_wait_for_event(main.connection)) )
         {
+            /* if (draw_type == DRAW_TYPE_WRITE_REDRAW_E) */
+            /* { */
+            /*     drawText(main, 1, 10 + (font.fontSize * t->size), "INSERT", font.font_gc); */
+            /* } */
+            /* else */
+            /* { */
+                /* drawText(main, 1, 10 + (font.fontSize * text.size), "NORMAL", font.font_gc); */
+            /* } */
             switch (event->response_type & ~0x80)
             {
                 case XCB_EXPOSE:
@@ -576,9 +591,11 @@ int main() {
                         if (current_state == TODO_WRITE_E)
                         {
                             text_draw(main, font, &text, DRAW_TYPE_WRITE_REDRAW_E);
+                            drawText(main, 1, 10 + (font.fontSize * text.size), "INSERT", font.font_gc);
                         } else
                         {
                             text_draw(main, font, &text, DRAW_TYPE_REDRAW_E);
+                            drawText(main, 1, 10 + (font.fontSize * text.size), "NORMAL", font.font_gc);
                         }
                     }
                     break;
@@ -614,7 +631,7 @@ int main() {
 
                                     if (!upper_case)
                                     {
-                                        text_commit_to_file(&text, "/home/void/notes/todo");
+                                        text_commit_to_file(&text, TODO_PATH);
                                     }
 
                                     text_free(&text);
@@ -656,6 +673,7 @@ int main() {
                                             {
                                                 decrease_window_size(main, font);
                                             }
+                                            drawText(main, 1, 10 + (font.fontSize * text.size), "NORMAL", font.font_gc);
                                         } else
                                         {
                                             char* string = XKeysymToString(y);
@@ -692,6 +710,7 @@ int main() {
                                                 current_char++;
                                                 drawText(main, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc_inverted);
                                             }
+                                            drawText(main, 1, 10 + (font.fontSize * text.size), "INSERT", font.font_gc);
                                         }
 
                                     }
@@ -716,46 +735,48 @@ int main() {
 
                                             drawText(main, 1, 10+ (font.fontSize * (text.size - 1)), "[ ] ", font.font_gc);
                                             drawText(main, 1 + ((font.fontSize-7) * (strlen(text.data[text.size-1]))), 10+ (font.fontSize * (text.size - 1)), " ", font.font_gc_inverted);
-                                        } else
-                                            if (!text_is_empty(&text))
+                                            drawText(main, 1, 10 + (font.fontSize * text.size), "INSERT", font.font_gc);
+                                        }
+                                        else if (!text_is_empty(&text))
+                                        {
+                                            if (kr->detail == 45 && text.selected > 0) // K
                                             {
-                                                if (kr->detail == 45 && text.selected > 0) // K
+                                                draw_type_e draw_type = DRAW_TYPE_MOVE_UP_E;
+                                                if (upper_case)
                                                 {
-                                                    draw_type_e draw_type = DRAW_TYPE_MOVE_UP_E;
+                                                    text_swap(&text, text.selected, text.selected-1);
+                                                    draw_type = DRAW_TYPE_REDRAW_E;
+                                                }
+
+                                                text.selected--;
+                                                text_draw(main, font, &text, draw_type);
+                                            }
+                                            else if (kr->detail == 44 && text.selected + 1 < text.size) // J
+                                            {
+                                                if (text.selected + 1 < text.size)
+                                                {
+                                                    draw_type_e draw_type = DRAW_TYPE_MOVE_DOWN_E;
                                                     if (upper_case)
                                                     {
-                                                        text_swap(&text, text.selected, text.selected-1);
+                                                        text_swap(&text, text.selected, text.selected + 1);
                                                         draw_type = DRAW_TYPE_REDRAW_E;
                                                     }
 
-                                                    text.selected--;
-                                                    text_draw(main, font, &text, draw_type);
-                                                }
-                                                else if (kr->detail == 44 && text.selected + 1 < text.size) // J
-                                                {
-                                                    if (text.selected + 1 < text.size)
-                                                    {
-                                                        draw_type_e draw_type = DRAW_TYPE_MOVE_DOWN_E;
-                                                        if (upper_case)
-                                                        {
-                                                            text_swap(&text, text.selected, text.selected + 1);
-                                                            draw_type = DRAW_TYPE_REDRAW_E;
-                                                        }
-
-                                                        text.selected++;
-                                                        text_draw(main, font, &text, draw_type);
-                                                    }
-                                                }
-                                                else if (kr->detail == 40) // D
-                                                {
-                                                    draw_type_e draw_type = text_set_completion(&text);
-                                                    if (draw_type == DRAW_TYPE_REDRAW_E)
-                                                    {
-                                                        decrease_window_size(main, font);
-                                                    }
+                                                    text.selected++;
                                                     text_draw(main, font, &text, draw_type);
                                                 }
                                             }
+                                            else if (kr->detail == 40) // D
+                                            {
+                                                draw_type_e draw_type = text_set_completion(&text);
+                                                if (draw_type == DRAW_TYPE_REDRAW_E)
+                                                {
+                                                    decrease_window_size(main, font);
+                                                }
+                                                text_draw(main, font, &text, draw_type);
+                                            }
+                                            drawText(main, 1, 10 + (font.fontSize * text.size), "NORMAL", font.font_gc);
+                                        }
                                     }
                                     break;
                                 }

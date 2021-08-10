@@ -1,0 +1,6 @@
+#!/bin/bash
+
+if pgrep -x "slodo" > /dev/null; then
+    win=$(xdotool search --onlyvisible --classname slodo | head -1)
+    xdotool key --clearmodifiers --window $win Escape
+fi

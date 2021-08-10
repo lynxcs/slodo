@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if pgrep -x "slodo" > /dev/null; then
+    xdotool search --classname slodo windowactivate
+else
+    slodo &
+fi
