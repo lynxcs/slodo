@@ -1,16 +1,8 @@
-#include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <X11/Xlib.h>
-#include <X11/keysym.h>
-#include <X11/keysymdef.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
-
-#include <xcb/xproto.h>
 
 #include "text.h"
 
@@ -52,7 +44,7 @@ void test_cookie(xcb_main main, xcb_void_cookie_t cookie, char* err_msg)
     xcb_generic_error_t* error = xcb_request_check(main.connection, cookie);
     if (error)
     {
-        fprintf(stderr, "ERROR: %s : %"PRIu8"\n", err_msg, error->error_code);
+        fprintf(stderr, "ERROR: %s : %u\n", err_msg, error->error_code);
         xcb_disconnect(main.connection);
         exit(-1);
     }
