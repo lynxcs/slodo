@@ -7,8 +7,8 @@
 #include "text.h"
 
 // Modify background and foreground colors if needed
-#define BACKGROUND_COLOR "#262626"
-#define FOREGROUND_COLOR "#dacea6"
+#define BG_COLOR "#262626"
+#define FG_COLOR "#dacea6"
 #define FONT_NAME "fixed"
 
 #define SHIFT_KEY 50
@@ -262,7 +262,7 @@ xcb_main create_xcb_main(int line_count)
     uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     uint32_t values[2];
 
-    char* background_color = BACKGROUND_COLOR;
+    char* background_color = BG_COLOR;
     values[0] = get_color_pixel(main, background_color);
     values[1] = XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE;
 
@@ -464,8 +464,8 @@ int main(int argc, char **argv)
     xcb_key_symbols_t *key_syms = xcb_key_symbols_alloc(main.connection);
 
     // Set background and foreground color
-    uint32_t background_pixel = get_color_pixel(main, BACKGROUND_COLOR);
-    uint32_t foreground_pixel = get_color_pixel(main, FOREGROUND_COLOR);
+    uint32_t background_pixel = get_color_pixel(main, BG_COLOR);
+    uint32_t foreground_pixel = get_color_pixel(main, FG_COLOR);
 
     font_full_t font = get_font_full(main, FONT_NAME, background_pixel, foreground_pixel);
 
