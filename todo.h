@@ -38,7 +38,7 @@ typedef struct Todo
 } Todo;
 
 // Initialize Todo struct
-Todo *todoInit(size_t initialSize);
+int todoInit(Todo *todo, size_t initialSize);
 
 // Parse string into todo entry
 TodoEntry todoParse(char *string);
@@ -46,10 +46,13 @@ TodoEntry todoParse(char *string);
 // Return index of appended entry
 size_t todoAppend(Todo *todo, TodoEntry entry);
 
+// Sets completion to `completionState` of entry at index
+// Returns true if successful (false otherwise)
+bool todoSetCompletion(Todo *todo, size_t entryIndex, bool completionState);
+
 // Remove entry from todo
 // Returns true if successful (false otherwise)
 bool todoRemove(Todo *todo, size_t entryIndex);
 
-// Sets completion to `completionState` of entry at index
-// Returns true if successful (false otherwise)
-bool todoSetCompletion(Todo *todo, size_t entryIndex, bool completionState);
+// Free todo struct
+void todoFree(Todo *todo);

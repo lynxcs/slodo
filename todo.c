@@ -106,12 +106,10 @@ bool isValid(Date date)
     return true;
 }
 
-Todo *todoInit(size_t initialSize)
+int todoInit(Todo *todo, size_t initialSize)
 {
-    Todo *todo = malloc(sizeof(Todo));
-
     if (!todo)
-        return NULL;
+        return 0;
 
     if (initialSize)
         todo->entries = malloc(sizeof(TodoEntry) * initialSize);
@@ -121,7 +119,7 @@ Todo *todoInit(size_t initialSize)
     todo->capacity = initialSize;
     todo->size = 0;
 
-    return todo;
+    return 1;
 }
 
 TodoEntry todoParse(char *string)
@@ -222,6 +220,15 @@ size_t todoAppend(Todo *todo, TodoEntry entry)
     return todo->size++;
 }
 
+bool todoSetCompletion(Todo *todo, size_t index, bool completionState)
+{
+    if (index >= todo->size)
+        return false;
+
+    todo->entries[index].completed = completionState;
+    return true;
+}
+
 bool todoRemove(Todo *todo, size_t index)
 {
     if (index >= todo->size)
@@ -240,12 +247,16 @@ bool todoRemove(Todo *todo, size_t index)
     return true;
 }
 
-// TODO
-bool todoSetCompletion(Todo *todo, size_t index, bool completionState)
+void todoFree(Todo *todo)
 {
-    if (index >= todo->size)
-        return false;
+    for(size_t i = 0; i < todo->size; ++i)
+    {
+        free(todo->entries[i].description);
+        free(todo->entries[i].tags);
+        todo->entries[i].description = NULL;
+        todo->entries[i].tags = NULL;
+    }
 
-    todo->entries[index].completed = completionState;
-    return true;
+    free(todo->entries);
+    todo->entries = NULL;
 }
