@@ -55,6 +55,14 @@ static bool hasPriority(char *word)
     return false;
 }
 
+static bool isValid(Date date)
+{
+    if (!date.year || !date.month || !date.day)
+        return false;
+
+    return true;
+}
+
 static bool hasDate(char *word)
 {
     return isValid(createDate(word));
@@ -98,14 +106,6 @@ Date createDate(char *string)
     return date;
 }
 
-bool isValid(Date date)
-{
-    if (!date.year || !date.month || !date.day)
-        return false;
-
-    return true;
-}
-
 int todoInit(Todo *todo, size_t initialSize)
 {
     if (!todo)
@@ -122,6 +122,72 @@ int todoInit(Todo *todo, size_t initialSize)
     return 1;
 }
 
+int todoInitFromFile(char *filename, Todo *todo)
+{
+    if (!filename || !todo)
+        return 0;
+
+    // 5 seems like reasonable default
+    // TODO count \n's in file to determine exact line count
+    todoInit(todo, 5);
+
+    FILE *file = fopen(filename, "r");
+    if (!file)
+        return 0;
+
+    char *string = NULL;
+    size_t length = 0;
+    while (getline(&string, &length, file) != -1)
+    {
+        string[strcspn(string, "\n")] = '\0';
+        todoAppend(todo, todoParse(string));
+    }
+
+    free(string);
+
+    fclose(file);
+    return 1;
+}
+
+int todoSaveToFile(char *filename, Todo *todo)
+{
+    if (!filename || !todo)
+        return 0;
+
+    FILE *file = fopen(filename, "w");
+    if (!file)
+        return 0;
+
+    for (size_t i = 0; i < todo->size; ++i)
+    {
+        const TodoEntry entry = todo->entries[i];
+        if (entry.completed)
+            fprintf(file, "X ");
+
+        if (entry.priority)
+            fprintf(file, "[%c] ", entry.priority);
+
+        if (isValid(entry.creationDate))
+        {
+            // If completion date isn't valid, then only creation date was present
+            const Date creation = entry.creationDate;
+            if(isValid(entry.completionDate))
+            {
+                const Date completion = entry.completionDate;
+                fprintf(file, "%d-%d-%d ", completion.year, completion.month, completion.day);
+            }
+
+            fprintf(file, "%d-%d-%d ", creation.year, creation.month, creation.day);
+        }
+
+        fprintf(file, "%s\n", entry.description);
+    }
+
+    fclose(file);
+
+    return 1;
+}
+
 TodoEntry todoParse(char *string)
 {
     TodoEntry entry;
@@ -129,6 +195,10 @@ TodoEntry todoParse(char *string)
     entry.completed = false;
     entry.tagCount = 0;
     entry.tags = NULL;
+    entry.description = NULL;
+
+    if (!string || strlen(string) == 0)
+        return entry;
 
     size_t wordCount;
     char **words = splitString(string, ' ', &wordCount);
@@ -204,7 +274,7 @@ TodoEntry todoParse(char *string)
 
 size_t todoAppend(Todo *todo, TodoEntry entry)
 {
-    if (!todo)
+    if (!todo || entry.description == NULL)
         return 0;
 
     if (todo->capacity == todo->size)

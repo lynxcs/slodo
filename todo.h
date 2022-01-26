@@ -9,9 +9,6 @@ typedef struct Date
     uint8_t month, day;
 } Date;
 
-bool isValid(Date date);
-
-// Format string: YYYY-MM-DD
 Date createDate(char *string);
 
 typedef struct Tag
@@ -32,13 +29,19 @@ typedef struct TodoEntry
 
 typedef struct Todo
 {
-    TodoEntry *entries;
-    size_t capacity;
-    size_t size;
+    TodoEntry *entries; // Entry array
+    size_t capacity; // How many entries can currently be held
+    size_t size; // How many entries there are
 } Todo;
 
 // Initialize Todo struct
 int todoInit(Todo *todo, size_t initialSize);
+
+// Initialize Todo struct from file
+int todoInitFromFile(char *filename, Todo *todo);
+
+// Save Todo struct to file
+int todoSaveToFile(char *filename, Todo *todo);
 
 // Parse string into todo entry
 TodoEntry todoParse(char *string);
